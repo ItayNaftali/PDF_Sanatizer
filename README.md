@@ -22,13 +22,19 @@
 
 ## Downloads
 
-| Platform | Download |
-|----------|----------|
-| **Windows** | [PDF_Forensic_Sanitizer.exe](https://github.com/ItayNaftali/PDF_Sanatizer/releases/latest/download/PDF_Forensic_Sanitizer_Windows.zip) |
-| **macOS** | [PDF_Forensic_Sanitizer_Mac.zip](https://github.com/ItayNaftali/PDF_Sanatizer/releases/latest/download/PDF_Forensic_Sanitizer_Mac.zip) |
-| **Linux** | [PDF_Forensic_Sanitizer](https://github.com/ItayNaftali/PDF_Sanatizer/releases/latest/download/PDF_Forensic_Sanitizer_Linux.zip) |
+### Option 1: From Actions (Always Latest)
 
-> **Note:** You can also download the latest builds from the [Actions](https://github.com/ItayNaftali/PDF_Sanatizer/actions) tab (Artifacts section).
+Go to [**Actions**](https://github.com/ItayNaftali/PDF_Sanatizer/actions) → Click latest workflow → Scroll to **Artifacts** → Download:
+
+| Platform | Artifact Name |
+|----------|---------------|
+| **Windows** | `PDF_Forensic_Sanitizer_Windows` |
+| **macOS** | `PDF_Forensic_Sanitizer_Mac` |
+| **Linux** | `PDF_Forensic_Sanitizer_Linux` |
+
+### Option 2: From Releases (Stable)
+
+Check the [**Releases**](https://github.com/ItayNaftali/PDF_Sanatizer/releases) page for stable versions.
 
 ---
 
