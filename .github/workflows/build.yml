@@ -46,11 +46,17 @@ jobs:
       - name: Build Mac App
         run: pyinstaller --onefile --windowed --name "PDF_Forensic_Sanitizer" pdf_sanitizer_full.py
 
+      - name: List dist contents
+        run: ls -la dist/
+
+      - name: Zip Mac App
+        run: cd dist && zip -r PDF_Forensic_Sanitizer_Mac.zip PDF_Forensic_Sanitizer.app || zip -r PDF_Forensic_Sanitizer_Mac.zip PDF_Forensic_Sanitizer
+
       - name: Upload Mac Artifact
         uses: actions/upload-artifact@v4
         with:
           name: PDF_Forensic_Sanitizer_Mac
-          path: dist/PDF_Forensic_Sanitizer.app
+          path: dist/PDF_Forensic_Sanitizer_Mac.zip
 
   build-linux:
     runs-on: ubuntu-latest
