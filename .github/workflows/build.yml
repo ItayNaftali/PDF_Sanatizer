@@ -5,11 +5,25 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch:  # Allows manual trigger
+  workflow_dispatch:
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+            artifact: PDF_Forensic_Sanitizer.exe
+          - os: macos-latest
+            name: Mac
+            artifact: PDF_Forensic_Sanitizer
+          - os: ubuntu-latest
+            name: Linux
+            artifact: PDF_Forensic_Sanitizer
+
+    runs-on: ${{ matrix.os }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -18,67 +32,96 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install PyInstaller
-        run: pip install pyinstaller
-
-      - name: Build Windows EXE
-        run: pyinstaller --onefile --windowed --name "PDF_Forensic_Sanitizer" pdf_sanitizer_full.py
-
-      - name: Upload Windows Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: PDF_Forensic_Sanitizer_Windows
-          path: dist/PDF_Forensic_Sanitizer.exe
-
-  build-mac:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install PyInstaller
-        run: pip install pyinstaller
-
-      - name: Build Mac App
-        run: pyinstaller --onefile --windowed --name "PDF_Forensic_Sanitizer" pdf_sanitizer_full.py
-
-      - name: List dist contents
-        run: ls -la dist/
-
-      - name: Zip Mac App
-        run: cd dist && zip -r PDF_Forensic_Sanitizer_Mac.zip PDF_Forensic_Sanitizer.app || zip -r PDF_Forensic_Sanitizer_Mac.zip PDF_Forensic_Sanitizer
-
-      - name: Upload Mac Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: PDF_Forensic_Sanitizer_Mac
-          path: dist/PDF_Forensic_Sanitizer_Mac.zip
-
-  build-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
+      - name: Install dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-tk
-          pip install pyinstaller
 
-      - name: Build Linux Binary
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+
+      - name: Build Application
         run: pyinstaller --onefile --windowed --name "PDF_Forensic_Sanitizer" pdf_sanitizer_full.py
 
-      - name: Upload Linux Artifact
+      - name: List output
+        run: ls -la dist/
+        shell: bash
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
+          name: PDF_Forensic_Sanitizer_${{ matrix.name }}
+          path: dist/${{ matrix.artifact }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PDF_Forensic_Sanitizer_Windows
+          path: ./release/windows/
+
+      - name: Download Mac Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PDF_Forensic_Sanitizer_Mac
+          path: ./release/mac/
+
+      - name: Download Linux Artifact
+        uses: actions/download-artifact@v4
+        with:
           name: PDF_Forensic_Sanitizer_Linux
-          path: dist/PDF_Forensic_Sanitizer
+          path: ./release/linux/
+
+      - name: Prepare Release Files
+        run: |
+          cd release
+          zip -j PDF_Forensic_Sanitizer_Windows.zip windows/*
+          zip -j PDF_Forensic_Sanitizer_Mac.zip mac/*
+          zip -j PDF_Forensic_Sanitizer_Linux.zip linux/*
+          ls -la
+
+      - name: Delete old release
+        run: |
+          gh release delete latest --yes || true
+          git push origin :refs/tags/latest || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: latest
+          name: PDF Forensic Sanitizer - Latest Build
+          body: |
+            ## PDF Forensic Sanitizer
+
+            **Created by Itay Naftali**
+
+            Remove metadata and forensic traces from PDF files.
+
+            ### Downloads
+            - **Windows**: `PDF_Forensic_Sanitizer_Windows.zip`
+            - **macOS**: `PDF_Forensic_Sanitizer_Mac.zip`
+            - **Linux**: `PDF_Forensic_Sanitizer_Linux.zip`
+
+            ### What it removes
+            - Author, Creator, Producer metadata
+            - Timestamps (reset to 1970-01-01)
+            - Timezone information (+02:00)
+            - Hebrew language tags /Lang(he)
+            - Document ID (UUID)
+            - XMP metadata
+          files: |
+            release/PDF_Forensic_Sanitizer_Windows.zip
+            release/PDF_Forensic_Sanitizer_Mac.zip
+            release/PDF_Forensic_Sanitizer_Linux.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
